@@ -1,0 +1,103 @@
+class PaymentHandler {
+    constructor() {
+        this.paymentController = null;
+        this.paymentStatus = 'failure';
+        this.paymentDataJson = null;
+        this.completionHandler = null;
+    }
+
+    startPayment(items, completion) {
+        this.completionHandler = completion;
+
+        // Simulating PKPaymentSummaryItem structure
+        let paymentSummaryItems = items.map(item => ({
+            label: item.label,
+            amount: item.amount.toFixed(2),
+        }));
+
+        let paymentRequest = {
+            paymentSummaryItems: paymentSummaryItems,
+            merchantIdentifier: 'merchant.com.digitain.paydrom',
+            merchantCapabilities: 'threeDSecure', // Replace with correct capability
+            countryCode: 'US', // Changed from couponCode
+            currencyCode: 'USD',
+            supportedNetworks: ['amex', 'visa', 'masterCard', 'mada'],
+        };
+
+        // Simulating PKPaymentAuthorizationController
+        let paymentAuthorizationController = {
+            present: (completionCallback) => {
+                let presented = true; // Simulating controller presentation
+                if (presented) {
+                    console.log('Presented payment controller');
+                } else {
+                    console.log('Failed to present');
+                    this.completionHandler(false, null);
+                }
+                completionCallback(presented);
+            },
+            dismiss: (dismissCallback) => {
+                let self = this;
+                setTimeout(() => {
+                    if (self.paymentStatus === 'success') {
+                        self.completionHandler(true, self.paymentDataJson);
+                        console.log('Success');
+                    } else {
+                        self.completionHandler(false, null);
+                        console.log('Nah');
+                    }
+                    dismissCallback();
+                }, 0);
+            },
+        };
+
+        this.paymentController = paymentAuthorizationController;
+        paymentAuthorizationController.present((presented) => {
+            // Simulate payment authorization
+            let payment = {
+                token: {
+                    paymentData: '{ "simulatedPaymentData": "example" }', // Simulated payment data JSON
+                },
+            };
+
+            this.paymentAuthorizationController(paymentAuthorizationController, payment, (result) => {
+                // Simulate payment authorization result
+                if (result.status === 'success') {
+                    console.log('Authorization successful');
+                } else {
+                    console.log('Authorization failed');
+                }
+            });
+        });
+    }
+
+    paymentAuthorizationController(controller, payment, completion) {
+        this.paymentStatus = 'success';
+        try {
+            let json = JSON.parse(payment.token.paymentData);
+            this.paymentDataJson = json;
+            console.log('Token JSON:', json);
+            console.log('Payment Data: ', 'ROB');
+            console.log('Callto Back en , response from them');
+            completion({ status: 'success', errors: [] }); // Corrected errors array
+        } catch (error) {
+            console.log('failed to load:', error.message);
+            completion({ status: 'failure', errors: [] }); // Corrected errors array and failure status
+        }
+    }
+}
+
+// Simulated usage
+let paymentHandler = new PaymentHandler();
+let items = [
+    { label: 'Item 1', amount: 20.0 },
+    { label: 'Item 2', amount: 30.0 },
+];
+
+paymentHandler.startPayment(items, (success, paymentData) => {
+    if (success) {
+        console.log('Payment successful:', paymentData);
+    } else {
+        console.log('Payment failed');
+    }
+});
